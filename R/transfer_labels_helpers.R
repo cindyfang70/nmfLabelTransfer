@@ -1,4 +1,4 @@
-source_nmf_and_model_fitting <- function(source, assay, seed, save_nmf, nmf_path, annotationsName, technicalVarName,...){
+source_nmf_and_model_fitting <- function(source, assay, seed, save_nmf, nmf_path, annotationsName, technicalVarName, alpha,...){
   # 1: run NMF on the source dataset
   source_nmf_mod <- run_nmf(data=source, assay=assay, seed=seed, ...)
 
@@ -22,7 +22,7 @@ source_nmf_and_model_fitting <- function(source, assay, seed, save_nmf, nmf_path
 
   # 3: fit multinomial model on source factors
   #factors_use <- source_factors[,factors_use_names]
-  multinom_mod <- fit_multinom_model(source_factors, annots)
+  multinom_mod <- fit_multinom_model(source_factors, annots, alpha)
 
   return(list(source_nmf=source_nmf_mod,
               source_factors=source_factors,

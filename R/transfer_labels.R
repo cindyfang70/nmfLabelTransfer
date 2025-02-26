@@ -1,5 +1,5 @@
 #' @export
-transfer_labels.list <- function(targets, source, assay="logcounts", annotationsName, technicalVarName, seed=123, nmf_path="nmf_mod.RDS", save_nmf=TRUE,...) {
+transfer_labels.list <- function(targets, source, assay="logcounts", annotationsName, technicalVarName, seed=123, nmf_path="nmf_mod.RDS", save_nmf=TRUE, alpha, ...) {
 
   check_source_validity(source, assay, annotationsName)
 
@@ -12,7 +12,7 @@ transfer_labels.list <- function(targets, source, assay="logcounts", annotations
   }
   source_outputs <- source_nmf_and_model_fitting(source, assay, seed,
                                                  save_nmf, nmf_path,
-                                                 annotationsName, technicalVarName,...)
+                                                 annotationsName, technicalVarName, alpha,...)
 
   source_nmf_mod <- source_outputs$source_nmf
   factors_use_names <- source_outputs$factors_use_names
@@ -61,6 +61,7 @@ transfer_labels.list <- function(targets, source, assay="logcounts", annotations
 #' @param seed A random seed
 #' @param save_nmf TRUE/FALSE specifying whether to save the NMF model to disk
 #' @param nmf_path if saving the NMF model to disk, the file path to save it to.
+#' @param alpha elasticnet mixing parameter, with 0≤α≤1.
 #' @param ... Additional parameters passed to `run_nmf`
 
 #'
@@ -93,19 +94,19 @@ transfer_labels.list <- function(targets, source, assay="logcounts", annotations
 #'             assay="logcounts",
 #'             annotationsName=layer_labs,
 #'             technicalVarName="sample_id",
-#'             save_nmf=FALSE, k=10, tol=1e-5)
+#'             save_nmf=FALSE, k=10, tol=1e-5, alpha=0)
 #'
 #' target_with_preds <- res$targets
 #' print(target_with_preds)
 #' # display the results
 #' table(target_with_preds$nmf_preds)
 #'
-transfer_labels <- function(targets, source, assay="logcounts", annotationsName, technicalVarName, seed=123, nmf_path="nmf_mod.RDS", save_nmf=TRUE,...){
+transfer_labels <- function(targets, source, assay="logcounts", annotationsName, technicalVarName, seed=123, nmf_path="nmf_mod.RDS", save_nmf=TRUE, alpha, ...){
   UseMethod("transfer_labels")
 }
 
 #' @export
-transfer_labels.SpatialExperiment <- function(targets, source, assay="logcounts", annotationsName, technicalVarName, seed=123, nmf_path="nmf_mod.RDS", save_nmf=TRUE,...){
+transfer_labels.SpatialExperiment <- function(targets, source, assay="logcounts", annotationsName, technicalVarName, seed=123, nmf_path="nmf_mod.RDS", save_nmf=TRUE, alpha, ...){
 
   check_source_validity(source, assay, annotationsName)
   check_targets_validity(assay, targets)
@@ -117,7 +118,7 @@ transfer_labels.SpatialExperiment <- function(targets, source, assay="logcounts"
   source_outputs <- source_nmf_and_model_fitting(source, assay, seed,
                                                  save_nmf, nmf_path,
                                                  annotationsName,
-                                                 technicalVarName,...)
+                                                 technicalVarName, alpha, ...)
 
   source_nmf_mod <- source_outputs$source_nmf
   factors_use_names <- source_outputs$factors_use_names
