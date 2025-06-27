@@ -12,14 +12,20 @@ source_nmf_and_model_fitting <- function(source, assay, seed, save_nmf, nmf_path
   # 2: select the important factors based on correlation
   annots <- colData(source)[[annotationsName]] # compute correlation with domains of interest
   factor_annot_cors <- compute_factor_correlations(source_factors, annots)
-  factors_use_names <- colnames(source_factors)
 
 
   # compute correlation with technial variable
-  #technicalVar <- colData(source)[[technicalVarName]]
-  #factor_tech_cors <- compute_factor_correlations(source_factors, technicalVar)
+  technicalVar <- colData(source)[[technicalVarName]]
 
-  #factors_use_names <- identify_factors_representing_annotations(factor_annot_cors, factor_tech_cors)
+  if(length(unique(technicalVar))>1){
+    factor_tech_cors <- compute_factor_correlations(source_factors, technicalVar)
+    factors_use_names <- identify_factors_representing_annotations(factor_annot_cors, factor_tech_cors)
+  }else{
+    factors_use_names <- colnames(source_factors)
+  }
+
+
+
 
   # 3: fit multinomial model on source factors
   #factors_use <- source_factors[,factors_use_names]
