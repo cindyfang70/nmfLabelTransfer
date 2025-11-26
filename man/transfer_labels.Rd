@@ -13,6 +13,7 @@ transfer_labels(
   seed = 123,
   nmf_path = "nmf_mod.RDS",
   save_nmf = TRUE,
+  alpha,
   ...
 )
 }
@@ -32,6 +33,8 @@ transfer_labels(
 \item{nmf_path}{if saving the NMF model to disk, the file path to save it to.}
 
 \item{save_nmf}{TRUE/FALSE specifying whether to save the NMF model to disk}
+
+\item{alpha}{elasticnet mixing parameter, with 0≤α≤1.}
 
 \item{...}{Additional parameters passed to \code{run_nmf}}
 }
@@ -63,7 +66,7 @@ res <- transfer_labels(targets=vis_anno_target,
             assay="logcounts",
             annotationsName=layer_labs,
             technicalVarName="sample_id",
-            save_nmf=FALSE, k=10, tol=1e-5)
+            save_nmf=FALSE, k=10, tol=1e-5, alpha=0)
 
 target_with_preds <- res$targets
 print(target_with_preds)

@@ -18,7 +18,8 @@ Imports:
     ComplexHeatmap,
     magrittr,
     escheR,
-    ggplot2
+    ggplot2,
+    glmnet
 Suggests: 
     testthat (>= 3.0.0),
     S4Vectors,

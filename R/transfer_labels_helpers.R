@@ -1,4 +1,4 @@
-source_nmf_and_model_fitting <- function(source, assay, seed, save_nmf, nmf_path, annotationsName, technicalVarName,...){
+source_nmf_and_model_fitting <- function(source, assay, seed, save_nmf, nmf_path, annotationsName, technicalVarName, alpha,...){
   # 1: run NMF on the source dataset
   source_nmf_mod <- run_nmf(data=source, assay=assay, seed=seed, ...)
 
@@ -16,13 +16,20 @@ source_nmf_and_model_fitting <- function(source, assay, seed, save_nmf, nmf_path
 
   # compute correlation with technial variable
   technicalVar <- colData(source)[[technicalVarName]]
-  factor_tech_cors <- compute_factor_correlations(source_factors, technicalVar)
 
-  factors_use_names <- identify_factors_representing_annotations(factor_annot_cors, factor_tech_cors)
+  if(length(unique(technicalVar))>1){
+    factor_tech_cors <- compute_factor_correlations(source_factors, technicalVar)
+    factors_use_names <- identify_factors_representing_annotations(factor_annot_cors, factor_tech_cors)
+  }else{
+    factors_use_names <- colnames(source_factors)
+  }
+
+
+
 
   # 3: fit multinomial model on source factors
-  factors_use <- source_factors[,factors_use_names]
-  multinom_mod <- fit_multinom_model(as.data.frame(factors_use), annots)
+  #factors_use <- source_factors[,factors_use_names]
+  multinom_mod <- fit_multinom_model(source_factors, annots, alpha)
 
   return(list(source_nmf=source_nmf_mod,
               source_factors=source_factors,

@@ -4,7 +4,7 @@
 \alias{fit_multinom_model}
 \title{Fit a multinomial modelto predict annotation using NMF factors as covariates.}
 \usage{
-fit_multinom_model(factors, source_annotations)
+fit_multinom_model(factors, source_annotations, alpha = 0.5)
 }
 \arguments{
 \item{factors}{a matrix of factors from NMF}
