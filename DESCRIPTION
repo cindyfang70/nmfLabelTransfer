@@ -1,13 +1,22 @@
 Package: nmfLabelTransfer
 Title: Spatial Integration of Cross-Platform Spatial Transcriptomics Data Using Two-Stage Label Transferring
-Version: 0.0.0.9000
-Authors@R: 
+Version: 0.0.0.9001
+Authors@R:
     person("Cindy", "Fang", , "xfang23@jhu.edu", role = c("aut", "cre"))
-Description: What the package does (one paragraph).
+Description: Implements a two-stage approach for transferring cell-type or
+    spatial-domain labels across spatial transcriptomics platforms.
+    Non-negative matrix factorization (NMF) is fit on an annotated source
+    dataset and the gene loadings are projected onto target datasets; a
+    penalized multinomial model then maps the factor scores to labels,
+    optionally adjusting for an additional covariate such as diagnosis.
+    Cross-platform expression differences can be reduced either by
+    projection-time z-scoring of shared genes or by residualizing platform
+    effects prior to factorization, and predicted labels can be spatially
+    smoothed over nearest neighbours.
 License: MIT + file LICENSE
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
-RoxygenNote: 7.3.2
+RoxygenNote: 7.3.3
 Imports:
     SpatialExperiment,
     RcppML,

@@ -2,18 +2,39 @@
 % Please edit documentation in R/multinom_model.R
 \name{fit_multinom_model}
 \alias{fit_multinom_model}
-\title{Fit a multinomial modelto predict annotation using NMF factors as covariates.}
+\title{Fit a multinomial model to predict annotation using NMF factors (and an
+optional covariate) as predictors.}
 \usage{
-fit_multinom_model(factors, source_annotations, alpha = 0.5)
+fit_multinom_model(
+  factors,
+  source_annotations,
+  alpha = 0.5,
+  covariate = NULL,
+  penalize_covariate = FALSE
+)
 }
 \arguments{
-\item{factors}{a matrix of factors from NMF}
+\item{factors}{a matrix of factors from NMF (cells x factors).}
 
-\item{source_annotations}{a vector of annotations}
+\item{source_annotations}{a vector of annotations (the response).}
+
+\item{alpha}{elasticnet mixing parameter, with 0 <= alpha <= 1.}
+
+\item{covariate}{Optional vector of an additional covariate (e.g. diagnosis),
+one value per cell, aligned to the rows of \code{factors}. If supplied it is
+added to the design matrix alongside the NMF factors. A factor/character
+covariate is expanded into dummy columns; a numeric covariate is used as-is.}
+
+\item{penalize_covariate}{If FALSE (default), the covariate columns are left
+unpenalized (\code{penalty.factor = 0}) so the model always adjusts for them.}
 }
 \value{
-A multinomial model object
+A \code{cv.glmnet} model object. When a covariate is used, the encoding is
+stored on the model via \code{attr(mod, "covariate_meta")} so the identical
+design can be reconstructed for the target at prediction time;
+\code{attr(mod, "n_factors")} records how many leading columns are NMF factors.
 }
 \description{
-Fit a multinomial modelto predict annotation using NMF factors as covariates.
+Fit a multinomial model to predict annotation using NMF factors (and an
+optional covariate) as predictors.
 }
