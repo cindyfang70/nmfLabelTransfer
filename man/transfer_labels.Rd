@@ -14,6 +14,8 @@ transfer_labels(
   nmf_path = "nmf_mod.RDS",
   save_nmf = TRUE,
   alpha,
+  harmonize = "none",
+  diagnosisName = NULL,
   ...
 )
 }
@@ -35,6 +37,22 @@ transfer_labels(
 \item{save_nmf}{TRUE/FALSE specifying whether to save the NMF model to disk}
 
 \item{alpha}{elasticnet mixing parameter, with 0≤α≤1.}
+
+\item{harmonize}{Cross-platform feature harmonization. \code{"none"} (default)
+keeps the original behaviour. \code{"zscore"} standardizes each shared gene at
+projection time and rescales it to the source per-gene mean/sd, keeping the
+NMF model reusable (see \link{project_factors}). \code{"residual"} instead removes a
+per-gene platform location effect by residualizing \code{expression ~ platform}
+jointly across source and target(s) \emph{before} NMF (see
+\link{harmonize_platform_residual}); this couples the model to the supplied
+target(s) and corrects location only, not scale.}
+
+\item{diagnosisName}{Optional name of a \code{colData} column (e.g. diagnosis) to
+include as a covariate in the multinomial model, alongside the NMF factors.
+When supplied it must be present in the source (for fitting) and in every
+target (for prediction), with target values restricted to levels seen in the
+source. The covariate is left unpenalized so the model always adjusts for it.
+Defaults to \code{NULL} (factors only, original behaviour).}
 
 \item{...}{Additional parameters passed to \code{run_nmf}}
 }

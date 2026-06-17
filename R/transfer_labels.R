@@ -1,5 +1,5 @@
 #' @export
-transfer_labels.list <- function(targets, source, assay="logcounts", annotationsName, technicalVarName, seed=123, nmf_path="nmf_mod.RDS", save_nmf=TRUE, alpha, ...) {
+transfer_labels.list <- function(targets, source, assay="logcounts", annotationsName, technicalVarName, seed=123, nmf_path="nmf_mod.RDS", save_nmf=TRUE, alpha, harmonize="none", diagnosisName=NULL, ...) {
 
   check_source_validity(source, assay, annotationsName)
 
@@ -10,9 +10,20 @@ transfer_labels.list <- function(targets, source, assay="logcounts", annotations
     warning("NAs in annotations, removing from source dataset")
     source <- source[,which(!is.na(colData(source)[[annotationsName]]))]
   }
+
+  # residualize platform effects jointly before NMF (couples source and targets)
+  proj_harmonize <- harmonize
+  if(identical(harmonize, "residual")){
+    corrected <- harmonize_platform_residual(source, targets, assay)
+    source <- corrected$source
+    targets <- corrected$targets
+    proj_harmonize <- "none" # correction already applied to the assay
+  }
+
   source_outputs <- source_nmf_and_model_fitting(source, assay, seed,
                                                  save_nmf, nmf_path,
-                                                 annotationsName, technicalVarName, alpha,...)
+                                                 annotationsName, technicalVarName, alpha,
+                                                 diagnosisName=diagnosisName, ...)
 
   source_nmf_mod <- source_outputs$source_nmf
   factors_use_names <- source_outputs$factors_use_names
@@ -21,21 +32,13 @@ transfer_labels.list <- function(targets, source, assay="logcounts", annotations
   for (i in 1:length(targets)){
     target <- targets[[i]]
     # 4: project patterns onto target dataset
-    projections <- project_factors(source, target, assay, source_nmf_mod)
+    projections <- project_factors(source, target, assay, source_nmf_mod, harmonize=proj_harmonize)
     reducedDim(target, "nmf_projections") <- projections
     #projections <- projections[,factors_use_names]
 
-    # 5: predict on the projected factors using the multinomial model
-    # probs <- predict(multinom_mod, newdata=projections, type='probs',
-    #                  na.action=na.exclude)
-    #
-    #
-    #
-    # preds <- unlist(lapply(1:nrow(probs), function(xx){
-    #   colnames(probs)[which.max(probs[xx,])]
-    # }))
-
-    preds <- predict(multinom_mod, newx=projections, s = "lambda.min", type = "class")
+    # 5: predict on the projected factors (plus covariate, if used) using the multinomial model
+    newx <- augment_with_covariate(projections, multinom_mod, target, diagnosisName)
+    preds <- predict(multinom_mod, newx=newx, s = "lambda.min", type = "class")
 
     colData(target)$nmf_preds <- preds
     targets[[i]] <- target
@@ -62,6 +65,20 @@ transfer_labels.list <- function(targets, source, assay="logcounts", annotations
 #' @param save_nmf TRUE/FALSE specifying whether to save the NMF model to disk
 #' @param nmf_path if saving the NMF model to disk, the file path to save it to.
 #' @param alpha elasticnet mixing parameter, with 0≤α≤1.
+#' @param harmonize Cross-platform feature harmonization. `"none"` (default)
+#'   keeps the original behaviour. `"zscore"` standardizes each shared gene at
+#'   projection time and rescales it to the source per-gene mean/sd, keeping the
+#'   NMF model reusable (see [project_factors]). `"residual"` instead removes a
+#'   per-gene platform location effect by residualizing `expression ~ platform`
+#'   jointly across source and target(s) *before* NMF (see
+#'   [harmonize_platform_residual]); this couples the model to the supplied
+#'   target(s) and corrects location only, not scale.
+#' @param diagnosisName Optional name of a `colData` column (e.g. diagnosis) to
+#'   include as a covariate in the multinomial model, alongside the NMF factors.
+#'   When supplied it must be present in the source (for fitting) and in every
+#'   target (for prediction), with target values restricted to levels seen in the
+#'   source. The covariate is left unpenalized so the model always adjusts for it.
+#'   Defaults to `NULL` (factors only, original behaviour).
 #' @param ... Additional parameters passed to `run_nmf`
 
 #'
@@ -101,12 +118,12 @@ transfer_labels.list <- function(targets, source, assay="logcounts", annotations
 #' # display the results
 #' table(target_with_preds$nmf_preds)
 #'
-transfer_labels <- function(targets, source, assay="logcounts", annotationsName, technicalVarName, seed=123, nmf_path="nmf_mod.RDS", save_nmf=TRUE, alpha, ...){
+transfer_labels <- function(targets, source, assay="logcounts", annotationsName, technicalVarName, seed=123, nmf_path="nmf_mod.RDS", save_nmf=TRUE, alpha, harmonize="none", diagnosisName=NULL, ...){
   UseMethod("transfer_labels")
 }
 
 #' @export
-transfer_labels.SpatialExperiment <- function(targets, source, assay="logcounts", annotationsName, technicalVarName, seed=123, nmf_path="nmf_mod.RDS", save_nmf=TRUE, alpha, ...){
+transfer_labels.SpatialExperiment <- function(targets, source, assay="logcounts", annotationsName, technicalVarName, seed=123, nmf_path="nmf_mod.RDS", save_nmf=TRUE, alpha, harmonize="none", diagnosisName=NULL, ...){
 
   check_source_validity(source, assay, annotationsName)
   check_targets_validity(assay, targets)
@@ -115,29 +132,33 @@ transfer_labels.SpatialExperiment <- function(targets, source, assay="logcounts"
     source <- source[,which(!is.na(colData(source)[[annotationsName]]))]
   }
 
+  # residualize platform effects jointly before NMF (couples source and target)
+  proj_harmonize <- harmonize
+  if(identical(harmonize, "residual")){
+    corrected <- harmonize_platform_residual(source, list(targets), assay)
+    source <- corrected$source
+    targets <- corrected$targets[[1]]
+    proj_harmonize <- "none" # correction already applied to the assay
+  }
+
   source_outputs <- source_nmf_and_model_fitting(source, assay, seed,
                                                  save_nmf, nmf_path,
                                                  annotationsName,
-                                                 technicalVarName, alpha, ...)
+                                                 technicalVarName, alpha,
+                                                 diagnosisName=diagnosisName, ...)
 
   source_nmf_mod <- source_outputs$source_nmf
   factors_use_names <- source_outputs$factors_use_names
   multinom_mod <- source_outputs$multinom
 
   # 4: project patterns onto target dataset
-  projections <- project_factors(source, targets, assay, source_nmf_mod)
+  projections <- project_factors(source, targets, assay, source_nmf_mod, harmonize=proj_harmonize)
   reducedDim(targets, "nmf_projections") <- projections
   #projections <- projections[,factors_use_names]
 
-  # 5: predict on the projected factors using the multinomial model
-  # probs <- predict(multinom_mod, newdata=projections, type='probs',
-  #                    na.action=na.exclude)
-  #
-  # preds <- unlist(lapply(1:nrow(probs), function(xx){
-  #     colnames(probs)[which.max(probs[xx,])]
-  #   }))
-
-  preds <- predict(multinom_mod, newx=projections, s = "lambda.min", type = "class")
+  # 5: predict on the projected factors (plus covariate, if used) using the multinomial model
+  newx <- augment_with_covariate(projections, multinom_mod, targets, diagnosisName)
+  preds <- predict(multinom_mod, newx=newx, s = "lambda.min", type = "class")
 
 
   colData(targets)$nmf_preds <- preds
